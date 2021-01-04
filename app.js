@@ -1,21 +1,51 @@
 const express = require('express');
-const mysql = require('mysql');
-
-const bodyParser = require('body-parser');
-
-const PORT = process.env.PORT || 3050; //process.env.PORT if app deployed to a hosting service or port 3050 for local use
-
 const app = express();
+const mysql = require('mysql');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const PORT = process.env.PORT || 3050; // Process.env.PORT if app deployed to a hosting service or port 3050 for local use
+const tracksRoute = require('./tracks.route');
 
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+app.use(cors()); // Necessary for cross-origin requests
 
-//MySql
+var SpotifyWebApi = require('spotify-web-api-node'); // Spotify web api wrapper
+
+// Spotify api credentials
+var clientId = '014d418b4a6643979dda60d7448e4621',
+    clientSecret = 'ce4f18746d1d4b499c65d089176de6c3';
+
+// Create the api object with the credentials
+var spotifyApi = new SpotifyWebApi({
+    clientId: clientId,
+    clientSecret: clientSecret
+});
+
+// Retrieve an access token.
+spotifyApi.clientCredentialsGrant().then(
+    function (data) {
+        console.log('The access token expires in ' + data.body['expires_in']);
+        console.log('The access token is ' + data.body['access_token']);
+
+        // Save the access token so that it's used in future calls
+        spotifyApi.setAccessToken(data.body['access_token']);
+    },
+    function (err) {
+        console.log('Something went wrong when retrieving an access token', err);
+    }
+);
+
+//Connection with MySql server
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'Fibonacci112358',
     database: 'ODYSSEY_DB'
 });
+
+// Routes for tracks management
+app.use('/tracks', tracksRoute);
 
 //Check connection
 connection.connect(error => {
@@ -26,68 +56,3 @@ connection.connect(error => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
-
-//Routes
-app.get('/', (req, res) => {
-    res.send('Welcome to API');
-});
-
-//all tracks
-app.get('/tracks', (req, res) => {
-    const sql = 'SELECT * FROM TRACKS'
-    connection.query(sql, (error, results) => {
-        if (error) throw error;
-        if (results.length > 0){
-            res.json(results);
-        } else {
-            res.send('No results found')
-        }
-    });
-});
-
-app.get('/tracks/:id', (req, res) => {
-    const {id} = req.params;
-    const sql = `SELECT * FROM TRACKS WHERE ID = ${id}`;
-    connection.query(sql, (error, results) => {
-        if (error) throw error;
-        if (results.length > 0){
-            res.json(results);
-        } else {
-            res.send('No results found')
-        }
-    });
-});
-
-
-app.post('/add', (req, res) => {
-    const sql = 'INSERT INTO TRACKS SET ?';
-
-    const trackObj = {
-        track_name: req.body.track_name,
-        artist: req.body.artist
-    }
-
-    connection.query(sql, trackObj, error => {
-        if (error) throw error;
-        res.send('Track added');
-    });
-});
-
-app.put('/update/:id', (req, res) => {
-    const {id} = req.params;
-    const{track_name, artist} = req.body;
-    const sql = `UPDATE TRACKS SET name = '${track_name}', artist = '${artist}' WHERTE id = ${id}`;
-    connection.query(sql, trackObj, error => {
-        if (error) throw error;
-        res.send('Track updated');
-    });
-});
-
-app.delete('/delete/:id', (req, res) => {
-    const {id} = req.params;
-    const sql = `DELETE FROM TRACKS WHERE id = ${id}`;
-    connection.query(sql, trackObj, error => {
-        if (error) throw error;
-        res.send('Track deleted');
-    });
-});
