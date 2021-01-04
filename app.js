@@ -5,36 +5,17 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const PORT = process.env.PORT || 3050; // Process.env.PORT if app deployed to a hosting service or port 3050 for local use
 const tracksRoute = require('./tracks.route');
+const Singleton = require('./singleton.js');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors()); // Necessary for cross-origin requests
 
-var SpotifyWebApi = require('spotify-web-api-node'); // Spotify web api wrapper
-
 // Spotify api credentials
 var clientId = '014d418b4a6643979dda60d7448e4621',
     clientSecret = 'ce4f18746d1d4b499c65d089176de6c3';
 
-// Create the api object with the credentials
-var spotifyApi = new SpotifyWebApi({
-    clientId: clientId,
-    clientSecret: clientSecret
-});
-
-// Retrieve an access token.
-spotifyApi.clientCredentialsGrant().then(
-    function (data) {
-        console.log('The access token expires in ' + data.body['expires_in']);
-        console.log('The access token is ' + data.body['access_token']);
-
-        // Save the access token so that it's used in future calls
-        spotifyApi.setAccessToken(data.body['access_token']);
-    },
-    function (err) {
-        console.log('Something went wrong when retrieving an access token', err);
-    }
-);
+let spotifyApiWppr = Singleton.getInstance(clientId, clientSecret);
 
 //Connection with MySql server
 const connection = mysql.createConnection({
@@ -60,13 +41,11 @@ app.listen(PORT, () => {
 app.get('/search/:key', (req, res) => {
     const { key } = req.params;
     searchSpotify(key, res);
-    //console.log(result);
-    //res.status(200).json(result);
 });
 
-module.exports = function searchSpotify(searchingWord, res) {
+function searchSpotify(searchingWord, res) {
     // Search tracks whose name, album or artist contains searchingWord
-    spotifyApi.searchTracks(searchingWord)
+    spotifyApiWppr.spotifyApi.searchTracks(searchingWord)
         .then(function (data) {
             //console.log('Search by "Love"', data.body.tracks.items[0]);
             res.status(200).json(data.body.tracks.items[0]);

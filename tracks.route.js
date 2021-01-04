@@ -3,7 +3,7 @@ const tracksRoute = express.Router();
 const Track = require('./tracks')
 const OK = 200;
 
-var searchSpotify = require('./app');
+//var searchSpotify = require('./app');
 //Routes
 tracksRoute.route('/').get( function (req, res) {
     res.send('Welcome to API');
