@@ -6,7 +6,7 @@ const bodyParser = require('body-parser');
 const PORT = process.env.PORT || 3050; // Process.env.PORT if app deployed to a hosting service or port 3050 for local use
 const tracksRoute = require('./tracks.route');
 
-app.use(bodyParser.urlencoded({extended: true}));
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors()); // Necessary for cross-origin requests
 
@@ -56,3 +56,21 @@ connection.connect(error => {
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
+
+app.get('/search/:key', (req, res) => {
+    const { key } = req.params;
+    searchSpotify(key, res);
+    //console.log(result);
+    //res.status(200).json(result);
+});
+
+module.exports = function searchSpotify(searchingWord, res) {
+    // Search tracks whose name, album or artist contains searchingWord
+    spotifyApi.searchTracks(searchingWord)
+        .then(function (data) {
+            //console.log('Search by "Love"', data.body.tracks.items[0]);
+            res.status(200).json(data.body.tracks.items[0]);
+        }, function (err) {
+            console.error(err);
+        });
+}
