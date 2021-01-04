@@ -2,6 +2,13 @@ const express = require('express');
 const tracksRoute = express.Router();
 const Track = require('./tracks')
 const OK = 200;
+const Singleton = require('./singleton.js');
+
+// Spotify api credentials
+var clientId = '014d418b4a6643979dda60d7448e4621',
+    clientSecret = 'ce4f18746d1d4b499c65d089176de6c3';
+
+let spotifyApiWppr = Singleton.getInstance(clientId, clientSecret);
 
 //var searchSpotify = require('./app');
 //Routes
@@ -11,8 +18,8 @@ tracksRoute.route('/').get( function (req, res) {
 
 //Test Spotify API
 tracksRoute.route('/search/:key').get( function (req, res) {
-    const { word } = req.params.key;
-    searchSpotify(word, res);
+    const { key } = req.params;
+    searchSpotify(key, res);
     //res.status(OK).json(result);
 });
 
@@ -77,5 +84,17 @@ tracksRoute.route('/delete/:id').delete(function (req, res) {
         res.send('Track deleted');
     });
 });
+
+function searchSpotify(searchingWord, res) {
+    // Search tracks whose name, album or artist contains searchingWord
+    spotifyApiWppr.spotifyApi.searchTracks(searchingWord)
+        .then(function (data) {
+            //console.log('Search by "Love"', data.body.tracks.items[0]);
+            res.status(200).json(data.body.tracks.items[0]);
+        }, function (err) {
+            res.status(400).send('No search query');
+            console.error(err);
+        });
+}
 
 module.exports = tracksRoute;
