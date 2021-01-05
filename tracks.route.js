@@ -37,12 +37,26 @@ tracksRoute.route('/').get(function (req, res) {
 });
 
 /**
- * Get route for searching tracks by name of song, artist or album. E.g.: http://localhost:3050/tracks/search?key=Dosed
+ * Service for searching tracks by name of song, artist or album. E.g.: http://localhost:3050/tracks/search?key=Dosed
  */
 tracksRoute.route('/search').get(function (req, res) {
     let key = req.query.key;
-    console.log(key);
-    searchSpotify(key, res);
+    let user_id = req.query.user_id;
+    const sql = `SELECT * FROM SEARCH_HISTORY WHERE searching_key = '${key}'`;
+    connection.query(sql, (error, results) => {
+        if (error) throw error;
+        if (results.length > 0) { //If search was already made, search in DB
+            searchDB(key, res);
+        } else { // search in Spotify API
+            var searched = {
+                searching_key: key,
+                user_id: user_id
+            };
+            addRequestToHistory(searched);
+            searchSpotify(key, res);
+        }
+    });
+    
 });
 
 /*
@@ -110,7 +124,7 @@ tracksRoute.route('/delete/:id').delete(function (req, res) {
 */
 
 /**
- * Search tracks whose name, album or artist contains searchingWord (returns first one)
+ * Search tracks whose name, album or artist contains searchingWord using Spotify API
  * @param {*} searchingWord 
  * @param {*} res 
  */
@@ -132,14 +146,27 @@ function searchSpotify(searchingWord, res) {
  * @param {*} trackObj 
  * @param {*} res 
  */
-function addTrack(trackObj, res) {
+function addTrack(trackObj) {
     const sql = 'INSERT INTO TRACKS SET ?';
     connection.query(sql, trackObj, error => {
         if (error) {
-            res.status(CONFLICT).send("Error: couldn't add track")
-            throw error;
+            console.log('Error: duplicated track');
         }
-        res.status(OK).send('Track added');
+        console.log(`Track ${trackObj.track_name} added to DB.`)
+    });
+}
+
+/**
+ * Adds a new value to SEARCH_HISTORY table in DB
+ * @param {*} requestObj 
+ */
+function addRequestToHistory(requestObj){
+    const sql = 'INSERT INTO SEARCH_HISTORY SET ?';
+    connection.query(sql, requestObj, error => {
+        if (error) {
+            console.log('Error: duplicated value');
+        }
+        console.log(`Registered  "${requestObj.searching_key}" to SEARCH_HISTORY.`)
     });
 }
 
@@ -158,8 +185,26 @@ function parseTracks(items) {
         var release_date = items[i].album.release_date;
         var track = new Track(id, track_name, artist, album, duration_ms, release_date, null).getTrack();
         tracks['results'].push(track);
+        addTrack(track); //Add track to DB
     }
     return tracks;
+}
+
+/**
+ * Search tracks whose name, album or artist contains searchingWord in the data-base
+ * @param {*} key 
+ * @param {*} res 
+ */
+function searchDB(key, res){
+    const sql = `SELECT * FROM TRACKS WHERE track_name LIKE '%${key}%' OR artist LIKE '%${key}%' OR album LIKE '%${key}%' LIMIT 0,20`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });
 }
 
 //Exports module's variables
