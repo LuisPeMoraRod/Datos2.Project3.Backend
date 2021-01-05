@@ -2,6 +2,7 @@ const express = require('express');
 const tracksRoute = express.Router();
 const Track = require('./tracks')
 const mysql = require('mysql');
+const lyricsParse = require('findthelyrics');
 
 const OK = 200,
     BAD_REQUEST = 400,
@@ -37,14 +38,14 @@ tracksRoute.route('/').get(function (req, res) {
 });
 
 /**
- * Service for searching tracks by name of song, artist or album. E.g.: http://localhost:3050/tracks/search?key=Dosed
+ * Service for searching tracks by name of song, artist or album. E.g.: http://localhost:3050/tracks/search?key=By the way&user_id=0
  */
 tracksRoute.route('/search').get(function (req, res) {
     let key = req.query.key;
     let user_id = req.query.user_id;
     const sql = `SELECT * FROM SEARCH_HISTORY WHERE searching_key = '${key}'`;
     connection.query(sql, (error, results) => {
-        if (error) throw error;
+        if (error) res.status(CONFLICT).send("Error while searching in Database");
         if (results.length > 0) { //If search was already made, search in DB
             searchDB(key, res);
         } else { // search in Spotify API
@@ -57,6 +58,19 @@ tracksRoute.route('/search').get(function (req, res) {
         }
     });
     
+});
+
+tracksRoute.route('/search/lyrics').get(function (req, res) {
+    let key = req.query.key;
+    const sql = `SELECT * FROM TRACKS WHERE lyrics LIKE '%${key}%' LIMIT 0,20`
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });
 });
 
 /*
@@ -175,7 +189,7 @@ function addRequestToHistory(requestObj){
  * @param {*} items 
  */
 function parseTracks(items) {
-    var tracks = {"results":[]};
+    var tracks = [];
     for (i = 0; i < items.length; i++) {
         var id = items[i].id;
         var track_name = items[i].name;
@@ -183,9 +197,12 @@ function parseTracks(items) {
         var album = items[i].album.name;
         var duration_ms = items[i].duration_ms;
         var release_date = items[i].album.release_date;
-        var track = new Track(id, track_name, artist, album, duration_ms, release_date, null).getTrack();
-        tracks['results'].push(track);
+
+        var track = new Track(id, track_name, artist, album, duration_ms, release_date, null, null).getTrack();
+        tracks.push(track);
+
         addTrack(track); //Add track to DB
+        addLyrics(track_name, artist, id); //Add lyrics to track
     }
     return tracks;
 }
@@ -205,6 +222,38 @@ function searchDB(key, res){
             res.status(OK).json(results);
         }
     });
+}
+
+/**
+ * Add lyrics to specific song in DB
+ * @param {*} track_name 
+ * @param {*} artist 
+ * @param {*} id 
+ */
+function addLyrics(track_name, artist, id){
+    lyricsParse.find(track_name, artist, function(err, resp){
+        if (!err) {
+            var lyrics = resp.replace(/'/g, "`");
+            const sql = `UPDATE TRACKS SET lyrics = '${lyrics}' WHERE id = '${id}'`;
+            connection.query(sql, error => {
+                if (!error) console.log('Lyrics added');
+                else throw error;
+            });
+        } else {
+            console.log(err)
+        }
+    });
+    /*
+    (async () => {
+        const lyrics = await lyricsParse(track_name, artist); // Will return false if no lyrics found.
+
+        const sql = `UPDATE TRACKS SET lyrics = '${lyrics}' WHERE id = '${id}'`;
+        connection.query(sql, error => {
+            //if (error) console.log(error);
+            //else console.log('Lyrics added');
+            if (!error) console.log('Lyrics added');
+        });
+      })();*/
 }
 
 //Exports module's variables
