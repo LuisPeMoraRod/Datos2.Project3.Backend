@@ -1,7 +1,7 @@
 class Track {
-    constructor(id, name, artist, album, duration_ms, release_date, youtubeLink){
+    constructor(id, track_name, artist, album, duration_ms, release_date, youtubeLink){
         this.id = id;
-        this.name = name;
+        this.track_name = track_name;
         this.artist = artist;
         this.album = album;
         this.duration_ms = duration_ms;
@@ -11,7 +11,7 @@ class Track {
     getTrack(){
         var track = {
             id: this.id,
-            track_name: this.name,
+            track_name: this.track_name,
             artist: this.artist,
             album: this.album,
             duration_ms: this.duration_ms,

@@ -2,7 +2,7 @@ The API uses a [Spotify API Wrapper](https://github.com/JMPerez/spotify-web-api-
 
 To run this API as a Node.js server you must install the following dependencies:
 
-### `npm install express mysql cors nodemon spotify-web-api when --save`
+### `npm install express mysql cors nodemon spotify-web-api --save`
 
 Run the server by hitting:
 

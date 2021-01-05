@@ -7,7 +7,7 @@ const OK = 200,
     BAD_REQUEST = 400,
     CONFLICT = 409;
 
-    // Instance for Spotify API Wrapper
+// Instance for Spotify API Wrapper
 const Singleton = require('./singleton.js');
 
 // Spotify api credentials
@@ -32,15 +32,16 @@ connection.connect(error => {
 
 
 //Routes
-tracksRoute.route('/').get( function (req, res) {
+tracksRoute.route('/').get(function (req, res) {
     res.send('Welcome to Odyssey Music API');
 });
 
 /**
  * Get route for searching tracks by name of song, artist or album. E.g.: http://localhost:3050/tracks/search?key=Dosed
  */
-tracksRoute.route('/search').get( function (req, res) {
+tracksRoute.route('/search').get(function (req, res) {
     let key = req.query.key;
+    console.log(key);
     searchSpotify(key, res);
 });
 
@@ -108,20 +109,17 @@ tracksRoute.route('/delete/:id').delete(function (req, res) {
 });
 */
 
+/**
+ * Search tracks whose name, album or artist contains searchingWord (returns first one)
+ * @param {*} searchingWord 
+ * @param {*} res 
+ */
 function searchSpotify(searchingWord, res) {
-    // Search tracks whose name, album or artist contains searchingWord (returns first one)
     spotifyApiWppr.spotifyApi.searchTracks(searchingWord)
         .then(function (data) {
-            
-            var id = data.body.tracks.items[0].id;
-            var track_name = data.body.tracks.items[0].name;
-            var artist = data.body.tracks.items[0].artists[0].name;
-            var album = data.body.tracks.items[0].album.name;
-            var duration_ms = data.body.tracks.items[0].duration_ms;
-            var release_date = data.body.tracks.items[0].release_date;
-            var track = new Track(id, track_name, artist, album, duration_ms, release_date, null);
-
-            res.status(OK).json(track);
+            var items = data.body.tracks.items;
+            var results = parseTracks(items);
+            res.status(OK).json(results);
 
         }, function (err) {
             res.status(BAD_REQUEST).send('No search query');
@@ -129,7 +127,12 @@ function searchSpotify(searchingWord, res) {
         });
 }
 
-function addTrack(trackObj, res){
+/**
+ * Adds track to database
+ * @param {*} trackObj 
+ * @param {*} res 
+ */
+function addTrack(trackObj, res) {
     const sql = 'INSERT INTO TRACKS SET ?';
     connection.query(sql, trackObj, error => {
         if (error) {
@@ -138,6 +141,25 @@ function addTrack(trackObj, res){
         }
         res.status(OK).send('Track added');
     });
+}
+
+/**
+ * Parse results from Sptify API to simplified json
+ * @param {*} items 
+ */
+function parseTracks(items) {
+    var tracks = {"results":[]};
+    for (i = 0; i < items.length; i++) {
+        var id = items[i].id;
+        var track_name = items[i].name;
+        var artist = items[i].artists[0].name;
+        var album = items[i].album.name;
+        var duration_ms = items[i].duration_ms;
+        var release_date = items[i].album.release_date;
+        var track = new Track(id, track_name, artist, album, duration_ms, release_date, null).getTrack();
+        tracks['results'].push(track);
+    }
+    return tracks;
 }
 
 //Exports module's variables
