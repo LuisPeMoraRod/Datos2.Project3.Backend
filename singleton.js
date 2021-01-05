@@ -1,5 +1,7 @@
 const SpotifyApiWrapper = require('./spotify_api_wrapper.js');
-
+/**
+ * Singleton pattern design to intantiate spotify api wrapper object
+ */
 var singleton = (function(){
     var instance;
 
