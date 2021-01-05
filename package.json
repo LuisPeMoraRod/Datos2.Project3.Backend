@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "spotify-web-api-node": "^5.0.0"
+    "spotify-web-api-node": "^5.0.0",
+    "when": "^3.7.8"
   }
 }

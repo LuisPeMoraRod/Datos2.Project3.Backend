@@ -1,23 +1,25 @@
 class Track {
-    constructor(name, artist, album, length, year, genre, youtubeLink){
+    constructor(id, name, artist, album, duration_ms, release_date, youtubeLink){
+        this.id = id;
         this.name = name;
         this.artist = artist;
         this.album = album;
-        this.length = length;
-        this.year = year;
-        this.genre = genre;
+        this.duration_ms = duration_ms;
+        this.release_date = release_date;
         this.youtubeLink = youtubeLink;
     }
     getTrack(){
         var track = {
+            id: this.id,
             track_name: this.name,
             artist: this.artist,
             album: this.album,
-            length: this.length,
-            year: this.year,
-            genre: this.genre,
+            duration_ms: this.duration_ms,
+            release_date: this.release_date,
             youtubeLink: this.youtubeLink
         }
         return track;
     }
 }
+
+module.exports = Track;
