@@ -3,19 +3,17 @@ const tracksRoute = express.Router();
 const Track = require('./tracks')
 const mysql = require('mysql');
 const lyricsParse = require('findthelyrics');
+const SpotifyApiWrapper = require('./spotify_api_wrapper.js');
 
 const OK = 200,
     BAD_REQUEST = 400,
     CONFLICT = 409;
 
-// Instance for Spotify API Wrapper
-const Singleton = require('./singleton.js');
-
 // Spotify api credentials
 var clientId = '014d418b4a6643979dda60d7448e4621',
     clientSecret = 'ce4f18746d1d4b499c65d089176de6c3';
 
-let spotifyApiWppr = Singleton.getInstance(clientId, clientSecret);
+let spotifyApiWppr = new SpotifyApiWrapper(clientId, clientSecret);
 
 //Connection with MySql server
 const connection = mysql.createConnection({
@@ -143,7 +141,7 @@ tracksRoute.route('/delete/:id').delete(function (req, res) {
  * @param {*} res 
  */
 function searchSpotify(searchingWord, res) {
-    spotifyApiWppr.spotifyApi.searchTracks(searchingWord)
+    spotifyApiWppr.spotifyApi.searchTracks(searchingWord) //uses Promises
         .then(function (data) {
             var items = data.body.tracks.items;
             var results = parseTracks(items);
