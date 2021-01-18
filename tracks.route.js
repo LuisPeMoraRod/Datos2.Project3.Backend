@@ -20,7 +20,8 @@ const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'Fibonacci112358',
-    database: 'ODYSSEY_DB'
+    database: 'ODYSSEY_DB',
+    multipleStatements: true
 });
 
 //Check connection to MySql server
@@ -44,7 +45,7 @@ tracksRoute.route('/search').get(function (req, res) {
     const sql = `SELECT * FROM SEARCH_HISTORY WHERE searching_key = '${key}'`;
     connection.query(sql, (error, results) => {
         if (error) res.status(CONFLICT).send("Error while searching in Database");
-        if (results.length > 0) { //If search was already made, search in DB
+        if (results.length >= 0) { //If search was already made, search in DB
             searchDB(key, res);
         } else { // search in Spotify API
             var searched = {
@@ -55,14 +56,14 @@ tracksRoute.route('/search').get(function (req, res) {
             searchSpotify(key, res);
         }
     });
-    
+
 });
 
 tracksRoute.route('/search/lyrics').get(function (req, res) {
     let key = req.query.key;
-    const sql = `SELECT * FROM TRACKS WHERE lyrics LIKE '%${key}%' LIMIT 0,20`
+    const sql = `SELECT * FROM TRACKS WHERE lyrics LIKE '%${key}%' LIMIT 0,10`
     connection.query(sql, (error, results) => {
-        if (error){
+        if (error) {
             res.status(CONFLICT).send(error);
         }
         else {
@@ -172,7 +173,7 @@ function addTrack(trackObj) {
  * Adds a new value to SEARCH_HISTORY table in DB
  * @param {*} requestObj 
  */
-function addRequestToHistory(requestObj){
+function addRequestToHistory(requestObj) {
     const sql = 'INSERT INTO SEARCH_HISTORY SET ?';
     connection.query(sql, requestObj, error => {
         if (error) {
@@ -188,7 +189,7 @@ function addRequestToHistory(requestObj){
  */
 function parseTracks(items) {
     var tracks = [];
-    for (i = 0; i < items.length; i++) {
+    for (i = 0; i < items.length / 2; i++) {
         var id = items[i].id;
         var track_name = items[i].name;
         var artist = items[i].artists[0].name;
@@ -210,16 +211,49 @@ function parseTracks(items) {
  * @param {*} key 
  * @param {*} res 
  */
-function searchDB(key, res){
-    const sql = `SELECT * FROM TRACKS WHERE track_name LIKE '%${key}%' OR artist LIKE '%${key}%' OR album LIKE '%${key}%' LIMIT 0,20`;
+function searchDB(key, res) {
+    var keys = key.split(/\W+/);
+    const sql = `SELECT * FROM TRACKS WHERE track_name LIKE '%${key}%' OR artist LIKE '%${key}%' OR album LIKE '%${key}%' OR lyrics LIKE '%${key}%' LIMIT 0,10;`;
     connection.query(sql, (error, results) => {
-        if (error){
-            res.status(CONFLICT).send(error);
+        if (error) {
+            console.log(error);
         }
-        else {
+        else if (results.length > 0){
             res.status(OK).json(results);
+        }else{
+            searchSingleWord(keys, res);
         }
     });
+    //res.status(OK).json('testing...');
+}
+
+/**
+ * Searches in database using mulitple statements: one per word
+ * @param {*} keys 
+ */
+function searchSingleWord(keys, res) {
+    var sql = '';
+    for (i = 0; i < keys.length; i++) {
+        sql += `SELECT * FROM TRACKS WHERE track_name LIKE '%${keys[i]}%' OR artist LIKE '%${keys[i]}%' OR album LIKE '%${keys[i]}%' OR lyrics LIKE '%${keys[i]}%' LIMIT 0,10;`;
+    }
+    connection.query(sql, (error, results) => {
+        if (error) {
+            res.status(CONFLICT).send("Error while searching in Database");
+            console.log(error);
+        }
+        else {
+            tracks = concatenateResults(results);
+            res.status(OK).json(tracks);
+        }
+    });
+}
+
+function concatenateResults(results){
+    var tracks = results[0];
+    for (i = 1; i < results.length; i++){
+        tracks.concat(results[i])
+    }
+    return tracks;
 }
 
 /**
@@ -228,8 +262,8 @@ function searchDB(key, res){
  * @param {*} artist 
  * @param {*} id 
  */
-function addLyrics(track_name, artist, id){
-    lyricsParse.find(track_name, artist, function(err, resp){
+function addLyrics(track_name, artist, id) {
+    lyricsParse.find(track_name, artist, function (err, resp) {
         if (!err) {
             var lyrics = resp.replace(/'/g, "`");
             const sql = `UPDATE TRACKS SET lyrics = '${lyrics}' WHERE id = '${id}'`;
