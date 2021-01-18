@@ -42,6 +42,7 @@ tracksRoute.route('/').get(function (req, res) {
 tracksRoute.route('/search').get(function (req, res) {
     let key = req.query.key;
     let user_id = req.query.user_id;
+    key.replace(/'/g, "`");
     const sql = `SELECT * FROM SEARCH_HISTORY WHERE searching_key = '${key}'`;
     connection.query(sql, (error, results) => {
         if (error) res.status(CONFLICT).send("Error while searching in Database");
