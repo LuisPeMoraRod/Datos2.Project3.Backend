@@ -45,7 +45,7 @@ tracksRoute.route('/search').get(function (req, res) {
     const sql = `SELECT * FROM SEARCH_HISTORY WHERE searching_key = '${key}'`;
     connection.query(sql, (error, results) => {
         if (error) res.status(CONFLICT).send("Error while searching in Database");
-        if (results.length >= 0) { //If search was already made, search in DB
+        if (results.length > 0) { //If search was already made, search in DB
             searchDB(key, res);
         } else { // search in Spotify API
             var searched = {
