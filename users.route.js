@@ -29,7 +29,6 @@ usersRoute.route('/').get(function(req, res) {
 
 usersRoute.route('/login').get(function (req, res) {
     let email = req.query.email;
-    let admin_status = req.query.admin_status;
     const sql = `SELECT * FROM USERS WHERE user_id = '${email}'`;
     connection.query(sql, (error, results) => {
         if (error) res.status(CONFLICT).send("Error while searching in Database");
@@ -39,13 +38,25 @@ usersRoute.route('/login').get(function (req, res) {
         else { // search in Spotify API
             var new_user = {
                 user_id: email,
-                admin: admin_status
+                admin: 0
             };
             addUser(new_user);
             res.send('User added, successfully logged in!')
         }
     });
     
+});
+
+usersRoute.route('/list').get(function (req, res) {
+    const sql = `SELECT user_id FROM USERS`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });   
 });
 
 function addUser(userObj) {
@@ -58,7 +69,7 @@ function addUser(userObj) {
     });
 }
 
-function searchDB(key, res){
+function searchDB(email, res){
     const sql = `SELECT * FROM USERS WHERE user_id = '${email}'`;
     connection.query(sql, (error, results) => {
         if (error){
