@@ -25,9 +25,9 @@ usersRoute.route('/').get(function(req, res) {
     res.send('Users Index Page');
 });
 
-// http://localhost:3050/users/search?email=moni&admin_status=0
+// Service to log in an user and if the user is not in the DB it adds him/her http://localhost:3050/users/login?email=moni
 
-usersRoute.route('/login').get(function (req, res) {
+usersRoute.route('/login').post(function (req, res) {
     let email = req.query.email;
     const sql = `SELECT * FROM USERS WHERE user_id = '${email}'`;
     connection.query(sql, (error, results) => {
@@ -47,7 +47,9 @@ usersRoute.route('/login').get(function (req, res) {
     
 });
 
+// Service that returns a list of all the users that have used the Odissey extension http://localhost:3050/users/list?email=moni
 usersRoute.route('/list').get(function (req, res) {
+    let email = req.query.email;
     const sql = `SELECT user_id FROM USERS`;
     connection.query(sql, (error, results) => {
         if (error){
@@ -57,6 +59,27 @@ usersRoute.route('/list').get(function (req, res) {
             res.status(OK).json(results);
         }
     });   
+});
+
+// Service that looks for a specific user using its id http://localhost:3050/users/search?key=mariana&email=moni
+usersRoute.route('/search').get(function (req, res) {
+    let email = req.query.email;
+    let key = req.query.key;
+    searchDB(key, res);  
+});
+
+usersRoute.route('/delete').delete(function (req, res) {
+    let email = req.query.email;
+    let key = req.query.key;
+    const sql = `DELETE FROM USERS WHERE user_id = '${key}'`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });  
 });
 
 function addUser(userObj) {
