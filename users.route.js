@@ -7,6 +7,7 @@ const OK = 200,
     BAD_REQUEST = 400,
     CONFLICT = 409;
 
+
 //Connection with MySql server
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -14,6 +15,8 @@ const connection = mysql.createConnection({
     password: 'Fibonacci112358',
     database: 'ODYSSEY_DB'
 });
+
+const auth_operation = 0;
 
 //Check connection to MySql server
 connection.connect(error => {
@@ -49,7 +52,7 @@ usersRoute.route('/login').post(function (req, res) {
 
 // Service that returns a list of all the users that have used the Odissey extension http://localhost:3050/users/list?email=moni
 usersRoute.route('/list').get(function (req, res) {
-    let email = req.query.email;
+    let key = req.query.keyl;
     const sql = `SELECT user_id FROM USERS`;
     connection.query(sql, (error, results) => {
         if (error){
@@ -65,7 +68,8 @@ usersRoute.route('/list').get(function (req, res) {
 usersRoute.route('/search').get(function (req, res) {
     let email = req.query.email;
     let key = req.query.key;
-    searchDB(key, res);  
+    let operation = 2;
+    searchDB(key, res, operation, email);  
 });
 
 usersRoute.route('/delete').delete(function (req, res) {
@@ -92,17 +96,41 @@ function addUser(userObj) {
     });
 }
 
-function searchDB(email, res){
+function searchDB(key, res, operation, email){
+    const sql = `SELECT * FROM USERS WHERE user_id = '${key}'`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        if (results.length > 0) { 
+            if(operation == 2){
+                searchUser(email, res);
+            }   
+        } 
+        else { 
+            res.send('The user is not logged in!')
+        }
+    
+    });
+}
+
+function searchUser(email, res){
     const sql = `SELECT * FROM USERS WHERE user_id = '${email}'`;
     connection.query(sql, (error, results) => {
         if (error){
             res.status(CONFLICT).send(error);
         }
-        else {
+        if (results.length > 0) { 
             res.status(OK).json(results);
+   
+        } 
+        else { 
+            res.send('The user doesn´t exists!')
         }
+    
     });
 }
+
 
 module.exports = {
     route: usersRoute
