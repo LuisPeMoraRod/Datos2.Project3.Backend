@@ -54,7 +54,7 @@ usersRoute.route('/login').post(function (req, res) {
 usersRoute.route('/list').get(function (req, res) {
     let key = req.query.key;
     let operation = 1;
-    let email = "";
+    let email = null;
     searchDB(key, res, operation, email);
     
 });
@@ -67,18 +67,13 @@ usersRoute.route('/search').get(function (req, res) {
     searchDB(key, res, operation, email);  
 });
 
+// Service that deletes an user using its email  http://localhost:3050/users/delete?key=mariana&email=moni
 usersRoute.route('/delete').delete(function (req, res) {
     let email = req.query.email;
     let key = req.query.key;
-    const sql = `DELETE FROM USERS WHERE user_id = '${key}'`;
-    connection.query(sql, (error, results) => {
-        if (error){
-            res.status(CONFLICT).send(error);
-        }
-        else {
-            res.status(OK).json(results);
-        }
-    });  
+    operation = 3;
+    searchDB(key, res, operation, email);
+    
 });
 
 function addUser(userObj) {
@@ -103,6 +98,9 @@ function searchDB(key, res, operation, email){
             }
             else if(operation == 2){
                 searchUser(email, res);
+            }
+            else{
+                verifyAdmin(key, res, email);
             }   
         } 
         else { 
@@ -139,6 +137,35 @@ function searchUser(email, res){
         }
     
     });
+}
+
+function verifyAdmin(key, res, email){
+    const sql = `SELECT admin FROM USERS WHERE user_id = '${key}' AND admin IS TRUE`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        if (results.length > 0) { 
+            deleteUser(email, res);
+   
+        } 
+        else{
+            res.send('The user is not an admin!')
+        }
+    
+    });
+}
+
+function deleteUser(email, res){
+    const sql = `DELETE FROM USERS WHERE user_id = '${email}'`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });  
 }
 
 
