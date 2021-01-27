@@ -50,18 +50,13 @@ usersRoute.route('/login').post(function (req, res) {
     
 });
 
-// Service that returns a list of all the users that have used the Odissey extension http://localhost:3050/users/list?email=moni
+// Service that returns a list of all the users that have used the Odissey extension http://localhost:3050/users/list?key=moni
 usersRoute.route('/list').get(function (req, res) {
-    let key = req.query.keyl;
-    const sql = `SELECT user_id FROM USERS`;
-    connection.query(sql, (error, results) => {
-        if (error){
-            res.status(CONFLICT).send(error);
-        }
-        else {
-            res.status(OK).json(results);
-        }
-    });   
+    let key = req.query.key;
+    let operation = 1;
+    let email = "";
+    searchDB(key, res, operation, email);
+    
 });
 
 // Service that looks for a specific user using its id http://localhost:3050/users/search?key=mariana&email=moni
@@ -103,7 +98,10 @@ function searchDB(key, res, operation, email){
             res.status(CONFLICT).send(error);
         }
         if (results.length > 0) { 
-            if(operation == 2){
+            if(operation == 1){
+                getUsersList(res);
+            }
+            else if(operation == 2){
                 searchUser(email, res);
             }   
         } 
@@ -112,6 +110,18 @@ function searchDB(key, res, operation, email){
         }
     
     });
+}
+
+function getUsersList(res){
+    const sql = `SELECT user_id FROM USERS`;
+    connection.query(sql, (error, results) => {
+        if (error){
+            res.status(CONFLICT).send(error);
+        }
+        else {
+            res.status(OK).json(results);
+        }
+    });   
 }
 
 function searchUser(email, res){
